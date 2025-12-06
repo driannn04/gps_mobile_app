@@ -1,7 +1,10 @@
 import 'package:geolocator/geolocator.dart';
+import 'package:trust_location/trust_location.dart';
 import '../models/location_model.dart';
 
 class LocationService {
+
+  bool lastIsMock = false; // <-- untuk simpan info Mock dari trust_location
 
   Future<bool> _ensurePermission() async {
     bool enabled = await Geolocator.isLocationServiceEnabled();
@@ -23,21 +26,33 @@ class LocationService {
     final ok = await _ensurePermission();
     if (!ok) return;
 
-    final stream = Geolocator.getPositionStream(
+    // -------------------------------
+    // START TRUST LOCATION (no await)
+    // -------------------------------
+    try {
+      TrustLocation.start(5);
+    } catch (_) {}
+
+    // LISTENER UNTUK FAKE GPS
+    TrustLocation.onChange.listen((values) {
+      lastIsMock = values.isMockLocation ?? false;
+    });
+
+    // --------------------------------
+    // STREAM GPS UTAMA GELOCATOR
+    // --------------------------------
+    await for (final pos in Geolocator.getPositionStream(
       locationSettings: const LocationSettings(
         accuracy: LocationAccuracy.high,
         distanceFilter: 5,
       ),
-    );
-
-    await for (final pos in stream) {
-
-      // JANGAN hitung jarak di sini
+    )) {
       yield LocationModel(
         latitude: pos.latitude,
         longitude: pos.longitude,
         accuracy: pos.accuracy,
-        distanceFromCampus: 0, // diisi nanti oleh provider
+        distanceFromCampus: 0,
+        isMock: lastIsMock,  // ← ambil dari listener
       );
     }
   }

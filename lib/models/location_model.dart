@@ -3,11 +3,13 @@ class LocationModel {
   final double longitude;
   final double accuracy;
   final double distanceFromCampus;
+  final bool isMock;
 
   LocationModel({
     required this.latitude,
     required this.longitude,
     required this.accuracy,
     required this.distanceFromCampus,
+    this.isMock = false,
   });
 }

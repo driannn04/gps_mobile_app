@@ -19,6 +19,8 @@ class _HomePageState extends State<HomePage> {
   String timeNow = "00:00:00";
   late Timer timer;
 
+  bool? lastFakeGpsStatus; // ← untuk mencegah spam notif
+
   @override
   void initState() {
     super.initState();
@@ -45,6 +47,33 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     final p = context.watch<LocationProvider>();
+
+    // ======================================================
+    //          FAKE GPS / MOCK LOCATION NOTIFICATION
+    // ======================================================
+    if (lastFakeGpsStatus != p.isFakeGps) {
+      lastFakeGpsStatus = p.isFakeGps;
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              p.isFakeGps
+                  ? "⚠️ Fake GPS terdeteksi! Lokasi tidak valid."
+                  : "GPS Aman ✔",
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            backgroundColor: p.isFakeGps ? Colors.red : Colors.green,
+            behavior: SnackBarBehavior.floating,
+            margin: const EdgeInsets.all(18),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+            ),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      });
+    }
 
     return Scaffold(
       backgroundColor: const Color(0xffe8ecff),

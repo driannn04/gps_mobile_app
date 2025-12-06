@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
-// ❌ vibration dihapus agar tidak error
-// import 'package:vibration/vibration.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/location_model.dart';
@@ -20,9 +18,13 @@ class LocationProvider extends ChangeNotifier {
   double distanceToCampus = 99999;
   bool followMode = true;
 
+  // presensi
   String? jamMasuk;
   String? jamKeluar;
   String? tanggalPresensi;
+
+  // fake gps
+  bool isFakeGps = false;
 
   double? get lat => currentPosition?.latitude;
   double? get lng => currentPosition?.longitude;
@@ -72,6 +74,9 @@ class LocationProvider extends ChangeNotifier {
     await loadCampusLocation();
 
     _gps.streamLocation().listen((raw) {
+      // fake gps
+      isFakeGps = raw.isMock;
+
       double dist = Geolocator.distanceBetween(
         raw.latitude,
         raw.longitude,
@@ -84,6 +89,7 @@ class LocationProvider extends ChangeNotifier {
         longitude: raw.longitude,
         accuracy: raw.accuracy,
         distanceFromCampus: dist,
+        isMock: raw.isMock,
       );
 
       distanceToCampus = dist;
@@ -118,14 +124,7 @@ class LocationProvider extends ChangeNotifier {
       jamKeluar ??= jam;
     }
 
-    await savePresensiLocal();
-    notifyListeners();
-
-    // ❌ vibration dihilangkan sesuai permintaan
-    // if (await Vibration.hasVibrator() == true) {
-    //   Vibration.vibrate(duration: 200);
-    // }
-
+    // SnackBar BEFORE await (menghindari async gap)
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: const Text(
@@ -144,6 +143,9 @@ class LocationProvider extends ChangeNotifier {
         duration: const Duration(seconds: 2),
       ),
     );
+
+    await savePresensiLocal();
+    notifyListeners();
   }
 
   // =======================================================
